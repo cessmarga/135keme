@@ -2,9 +2,11 @@
 #include <cstdlib>
 #include <string>
 
+#define N 9
+
 using namespace std;
 
-int sudoku[9][9];
+int sudoku[N][N];
 int ins;
 
 void Display() {
@@ -53,13 +55,87 @@ void Delete(int row, int column) {
     return;
 }
 
-void Solve() {
+bool CheckRow(int val, int S, int check[N][N]) {
+    for (int col = 0; col < 9; col++) {
+        if (check[S][col] == val) {
+            return false; //there exists two of the same number
+        }
+    }
+    return true;
+}
 
+bool CheckCol(int val, int S, int check[N][N]) {
+    for (int row = 0; row < 9; row++) {
+        if (check[row][S] == val) {
+            return false; //there exists two of the same number
+        }
+    }
+    return true;
+}
+
+bool CheckGrid(int val, int row, int col, int check[N][N]) {
+    int nr, xr;
+    int nc, xc;
+
+    if (row < 3) {
+        nr = 0;
+        xr = 2;
+    } else if (row < 6) {
+        nr = 3;
+        xr = 5;
+    } else {
+        nr = 6;
+        xr = 8;
+    }
+
+    if (col < 3) {
+        nc = 0;
+        xc = 2;
+    } else if (col < 6) {
+        nc = 3;
+        xc = 5;
+    } else {
+        nc = 6;
+        xc = 8;
+    }
+
+    for(int i = nr; i <= xr; i++) {
+        for(int j = nc; j <= xc; j++) {
+            if (check[i][j] == val) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void Solve(int puzzle[N][N]) {
+    for (int row = 0; row < 9; row++) {
+        for (int col = 0; col < 9; col++) {
+            if (puzzle[row][col] == 0) {
+                for (int num = 1; num <= 9; num++) {
+                    cout << "Doing Row " << row << ", Column " << col << " with #" << num << ".\n";
+                    if (CheckRow(num, row, puzzle) == false) {
+                        continue;
+                    } else if (CheckCol(num, col, puzzle) == false) {
+                        continue;
+                    } else if (CheckGrid(num, row, col, puzzle) == false) {
+                        continue;
+                    } else {
+                        puzzle[row][col] = num;
+                        Solve(puzzle);
+                    }
+                }
+            }
+        }
+    }
+    copy(&puzzle[0][0], &puzzle[0][0]+N*N,&sudoku[0][0]);
 }
 
 int main() {
     int row = 0, column = 0;
     string comm;
+    int puzzle[N][N];
 
     while(ins < 81) {
         Display();
@@ -79,10 +155,13 @@ int main() {
             exit(0);
         } else if (comm == "SOLVE") {
             if (ins < 17) {
-                cout << "Needs more hints in cell.\n";
+                cout << "Needs more hints in cells.\n";
                 continue;
             }
-            cout << "SOLVE!!!!";
+            copy(&sudoku[0][0], &sudoku[0][0]+N*N,&puzzle[0][0]);
+            Solve(puzzle);
+            Display();
+        //    cout << "SOLVE!!!!";
             exit(0);
         }
     }
