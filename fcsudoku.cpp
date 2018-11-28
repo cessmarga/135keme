@@ -8,6 +8,7 @@ using namespace std;
 
 int sudoku[N][N];
 int ins;
+int x[2];
 
 void Display() {
     system("clear");
@@ -53,6 +54,20 @@ void Delete(int row, int column) {
     }
     sudoku[row][column] = 0;
     return;
+}
+
+void EmptyCell(int check[N][N]) {
+    for(int i = 0; i < 9; i++) {
+        for(int j = 0; j < 9; j++) {
+            if (check[i][j] == 0) {
+                x[0] = i;
+                x[1] = j;
+                return;
+            }
+        }
+    }
+    x[0] = 9;
+    x[1] = 9;
 }
 
 bool CheckRow(int val, int S, int check[N][N]) {
@@ -109,27 +124,32 @@ bool CheckGrid(int val, int row, int col, int check[N][N]) {
     return true;
 }
 
-void Solve(int puzzle[N][N]) {
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-            if (puzzle[row][col] == 0) {
-                for (int num = 1; num <= 9; num++) {
-                    cout << "Doing Row " << row << ", Column " << col << " with #" << num << ".\n";
-                    if (CheckRow(num, row, puzzle) == false) {
-                        continue;
-                    } else if (CheckCol(num, col, puzzle) == false) {
-                        continue;
-                    } else if (CheckGrid(num, row, col, puzzle) == false) {
-                        continue;
-                    } else {
-                        puzzle[row][col] = num;
-                        Solve(puzzle);
-                    }
-                }
+bool Solve(int puzzle[N][N]) {
+    EmptyCell(puzzle);
+    if (x[0] == 9 && x[1] == 9) {
+        copy(&puzzle[0][0], &puzzle[0][0]+N*N,&sudoku[0][0]);
+        return true;
+    }
+    int row = x[0];
+    int col = x[1];
+    for (int num = 1; num <= 9; num++) {
+        cout << "Doing Row " << row << ", Column " << col << " with #" << num << ".\n";
+        if (CheckRow(num, row, puzzle) == false) {
+            continue;
+        } else if (CheckCol(num, col, puzzle) == false) {
+            continue;
+        } else if (CheckGrid(num, row, col, puzzle) == false) {
+            continue;
+        } else {
+            puzzle[row][col] = num;
+            if(Solve(puzzle)) {
+                copy(&puzzle[0][0], &puzzle[0][0]+N*N,&sudoku[0][0]);
+                return true;
             }
+            puzzle[row][col] = 0;
         }
     }
-    copy(&puzzle[0][0], &puzzle[0][0]+N*N,&sudoku[0][0]);
+    return false;
 }
 
 int main() {
@@ -159,8 +179,12 @@ int main() {
                 continue;
             }
             copy(&sudoku[0][0], &sudoku[0][0]+N*N,&puzzle[0][0]);
-            Solve(puzzle);
-            Display();
+            if (Solve(puzzle) == true) {
+                Display();
+            } else {
+                Display();
+                cout << "No solution found!\n";
+            };
         //    cout << "SOLVE!!!!";
             exit(0);
         }
