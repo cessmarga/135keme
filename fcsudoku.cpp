@@ -7,8 +7,8 @@
 using namespace std;
 
 int sudoku[N][N];
-int ins;
-int x[2];
+int ins; //number of hints (filled out cells)
+int x[2]; //row and column from Empty Cell checking
 
 void Display() {
     system("clear");
@@ -60,12 +60,13 @@ void EmptyCell(int check[N][N]) {
     for(int i = 0; i < 9; i++) {
         for(int j = 0; j < 9; j++) {
             if (check[i][j] == 0) {
-                x[0] = i;
-                x[1] = j;
+                x[0] = i; //row
+                x[1] = j; //column
                 return;
             }
         }
     }
+    //all spaces filled
     x[0] = 9;
     x[1] = 9;
 }
@@ -89,8 +90,8 @@ bool CheckCol(int val, int S, int check[N][N]) {
 }
 
 bool CheckGrid(int val, int row, int col, int check[N][N]) {
-    int nr, xr;
-    int nc, xc;
+    int nr, xr; //minimum and maximum row numbers
+    int nc, xc; //minimum and maximum column numbers
 
     if (row < 3) {
         nr = 0;
@@ -117,7 +118,7 @@ bool CheckGrid(int val, int row, int col, int check[N][N]) {
     for(int i = nr; i <= xr; i++) {
         for(int j = nc; j <= xc; j++) {
             if (check[i][j] == val) {
-                return false;
+                return false; //there exists two of the same number within the grid
             }
         }
     }
@@ -133,7 +134,7 @@ bool Solve(int puzzle[N][N]) {
     int row = x[0];
     int col = x[1];
     for (int num = 1; num <= 9; num++) {
-        cout << "Doing Row " << row << ", Column " << col << " with #" << num << ".\n";
+        //cout << "Doing Row " << row << ", Column " << col << " with #" << num << ".\n";
         if (CheckRow(num, row, puzzle) == false) {
             continue;
         } else if (CheckCol(num, col, puzzle) == false) {
@@ -185,7 +186,6 @@ int main() {
                 Display();
                 cout << "No solution found!\n";
             };
-        //    cout << "SOLVE!!!!";
             exit(0);
         }
     }
