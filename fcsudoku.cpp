@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <string>
+#include <ctime>
 
 #define N 9
 
@@ -174,6 +175,10 @@ int main() {
             system("clear");
             exit(0);
         } else if (comm == "SOLVE") {
+            clock_t soltime;
+
+            soltime = clock();
+
             if (ins < 17) {
                 cout << "Needs more hints in cells.\n";
                 continue;
@@ -185,7 +190,8 @@ int main() {
                 Display();
                 cout << "No solution found!\n";
             };
-        //    cout << "SOLVE!!!!";
+
+            cout << "Time to solve (in seconds): " << float( clock() - soltime)/CLOCKS_PER_SEC << "\n\n";
             exit(0);
         }
     }
