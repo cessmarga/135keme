@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <unistd.h>
 #include <string>
 #include <ctime>
 
@@ -126,6 +127,68 @@ bool CheckGrid(int val, int row, int col, int check[N][N]) {
     return true;
 }
 
+bool CheckProc (int num, int row, int col, int puzzle[N][N]) {
+    bool a, b;
+    int pip1[2], pip2[2];
+
+    if (pipe(pip1) == -1 || pipe(pip2) == -1) {
+        cout << "Pipe Error!\n";
+        exit(1);
+    }
+
+    if (fork()) {
+        close(pip1[0]); //close reading
+
+        if (fork()) {
+
+            close(pip2[0]); //close reading
+
+            a = CheckRow(num, row, puzzle);
+            cout << "row:" << a << "\n";
+            write (pip2[1], &a, sizeof(a)); //send value of CheckRow
+
+            close(pip2[1]); //close writing
+            exit(0);
+
+        } else {
+
+            close(pip2[1]); //close writing
+
+            b = CheckCol(num, col, puzzle);
+            cout << "col:" << b << "\n";
+            read(pip2[0], &a, sizeof(a)); //receive value of CheckRow
+            cout << "rec:" << a << "\n";
+            close(pip2[0]);
+
+
+            if (a == false || b == false) {
+                a = false;
+            } else {
+                a = true;
+            }
+        }
+        write(pip1[1], &a, sizeof(a)); //send value of CheckRow&&CheckCol
+        close(pip1[1]); //close writing
+        exit(0);
+    } else {
+
+        close(pip1[1]); //close writing
+
+        b = CheckGrid(num, row, col, puzzle);
+        cout << "grid: " << b << "\n";
+
+        read (pip1[1], &a, sizeof(a)); //receive value of CheckRow&&CheckCol
+        close (pip1[0]); //close reading
+        cout << "a and b:" << a << b;
+        //value of all checking processes
+        if (a == false || b == false) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+}
+
 bool Solve(int puzzle[N][N]) {
     EmptyCell(puzzle);
     if (x[0] == 9 && x[1] == 9) {
@@ -135,11 +198,8 @@ bool Solve(int puzzle[N][N]) {
     int row = x[0];
     int col = x[1];
     for (int num = 1; num <= 9; num++) {
-        if (CheckRow(num, row, puzzle) == false) {
-            continue;
-        } else if (CheckCol(num, col, puzzle) == false) {
-            continue;
-        } else if (CheckGrid(num, row, col, puzzle) == false) {
+        cout << "Checking # " << num << "\n";
+        if (CheckProc(num, row, col, puzzle) == false) {
             continue;
         } else {
             puzzle[row][col] = num;
