@@ -144,7 +144,6 @@ bool CheckProc (int num, int row, int col, int puzzle[N][N]) {
             close(pip2[0]); //close reading
 
             a = CheckRow(num, row, puzzle);
-            cout << "row:" << a << "\n";
             write (pip2[1], &a, sizeof(a)); //send value of CheckRow
 
             close(pip2[1]); //close writing
@@ -155,10 +154,8 @@ bool CheckProc (int num, int row, int col, int puzzle[N][N]) {
             close(pip2[1]); //close writing
 
             b = CheckCol(num, col, puzzle);
-            cout << "col:" << b << "\n";
             read(pip2[0], &a, sizeof(a)); //receive value of CheckRow
-            cout << "rec:" << a << "\n";
-            close(pip2[0]);
+            close(pip2[0]); //close reading
 
 
             if (a == false || b == false) {
@@ -175,15 +172,20 @@ bool CheckProc (int num, int row, int col, int puzzle[N][N]) {
         close(pip1[1]); //close writing
 
         b = CheckGrid(num, row, col, puzzle);
-        cout << "grid: " << b << "\n";
-
-        read (pip1[1], &a, sizeof(a)); //receive value of CheckRow&&CheckCol
+        read (pip1[0], &a, sizeof(a)); //receive value of CheckRow&&CheckCol
         close (pip1[0]); //close reading
-        cout << "a and b:" << a << b;
         //value of all checking processes
         if (a == false || b == false) {
+            close(pip1[0]);
+            close(pip1[1]);
+            close(pip2[0]);
+            close(pip2[1]);
             return false;
         } else {
+            close(pip1[0]);
+            close(pip1[1]);
+            close(pip2[0]);
+            close(pip2[1]);
             return true;
         }
     }
@@ -198,7 +200,7 @@ bool Solve(int puzzle[N][N]) {
     int row = x[0];
     int col = x[1];
     for (int num = 1; num <= 9; num++) {
-        cout << "Checking # " << num << "\n";
+        cout << "Checking #" << num << " for " << row << "," << col << "\n";
         if (CheckProc(num, row, col, puzzle) == false) {
             continue;
         } else {
@@ -246,12 +248,11 @@ int main() {
             copy(&sudoku[0][0], &sudoku[0][0]+N*N,&puzzle[0][0]);
             if (Solve(puzzle) == true) {
                 Display();
+                cout << "Time to solve (in seconds): " << float( clock() - soltime)/CLOCKS_PER_SEC << "\n\n";
             } else {
                 Display();
                 cout << "No solution found!\n";
             };
-
-            cout << "Time to solve (in seconds): " << float( clock() - soltime)/CLOCKS_PER_SEC << "\n\n";
             exit(0);
         }
     }
