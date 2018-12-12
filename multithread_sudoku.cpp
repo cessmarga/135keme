@@ -2,20 +2,22 @@
 #include <cstdlib>
 #include <string>
 #include <thread>
+#include <unistd.h>
 
 #define N 9
 
 using namespace std;
 
-struct parameters{
+/*struct parameters{
      int num;
      int row;
      int col;
      int check[N][N];
-};
+};*/
 
 int sudoku[N][N];
-int ins, val, check_row, check_col, check_grid;
+int ins, val;
+int check_row = 3, check_col = 3, check_grid = 3;
 int x[2];
 
 void Display() {
@@ -78,39 +80,36 @@ void EmptyCell(int check[N][N]) {
     x[1] = 9;
 }
 
-void CheckRow(parameters par) {
-
-    for (int col = 0; col <= 9; col++) {
-        if(col < 9){
-           if (par.check[par.row][col] == par.num) {
-               check_row = 0; //there exists two of the same number
-           }
-        } else if(col == 9)
-            check_row = 1;
+void CheckRow(int val, int S, int check[N][N]) {
+    for (int col = 0; col < 9; col++) {
+        if (check[S][col] == val) {
+              check_row = 0; //there exists two of the same number
+              break;
+         }else
+              check_row = 1;
     }
 }
 
-void CheckCol(parameters par) {
-     cout << "LSG_col\n";
-    for (int row = 0; row <= 9; row++) {
-        if(row < 9){
-           if (par.check[row][par.col] == par.num) {
-               check_col = 0; //there exists two of the same number
-           }
-      }else if(row == 9)
-            check_col = 1;
+
+void CheckCol(int val, int S, int check[N][N]) {
+    for (int row = 0; row < 9; row++) {
+        if (check[row][S] == val) {
+              check_col = 0; //there exists two of the same number
+              break;
+         }else
+              check_col = 1;
     }
 }
 
-void CheckGrid(parameters par) {
-     cout << "LSG_grid\n";
+void CheckGrid(int val, int row, int col, int check[N][N]) {
+     //sleep(1);
     int nr, xr;
     int nc, xc;
 
-    if (par.row < 3) {
+    if (row < 3) {
         nr = 0;
         xr = 2;
-   } else if (par.row < 6) {
+   } else if (row < 6) {
         nr = 3;
         xr = 5;
     } else {
@@ -118,10 +117,10 @@ void CheckGrid(parameters par) {
         xr = 8;
     }
 
-    if (par.col < 3) {
+    if (col < 3) {
         nc = 0;
         xc = 2;
-   } else if (par.col < 6) {
+   } else if (col < 6) {
         nc = 3;
         xc = 5;
     } else {
@@ -131,12 +130,33 @@ void CheckGrid(parameters par) {
 
     for(int i = nr; i <= xr; i++) {
         for(int j = nc; j <= xc; j++) {
-            if (par.check[i][j] == par.num) {
+            if (check[i][j] == val) {
                 check_grid = 0; //there exists two of the same number
-            }
+                break;
+           } else{
+                check_grid = 1;
+           }
         }
+        if(check_grid == 0)
+          break;
     }
-    check_grid = 1;
+}
+
+bool threads(int num, int row, int col, int puzzle[N][N]){
+
+     //parameters par = {num, row, col, **puzzle};
+     thread t1(CheckRow, num, row, puzzle);
+     thread t2(CheckCol, num, col, puzzle);
+     thread t3(CheckGrid, num, row, col, puzzle);
+     t1.join();
+     t2.join();
+     t3.join();
+
+     if((check_row == 0) | (check_col == 0) | (check_grid == 0))
+          return false;
+
+     return true;
+
 }
 
 bool Solve(int puzzle[N][N]) {
@@ -147,28 +167,20 @@ bool Solve(int puzzle[N][N]) {
     }
     int row = x[0];
     int col = x[1];
-    for (val = 1; val <= 9; val++) {
-        cout << "Doing Row " << row << ", Column " << col << " with #" << val << ".\n";
+    for (int num = 1; num <= 9; num++) {
+        cout << "Doing Row " << row << ", Column " << col << " with #" << num << ".\n";
 
-        parameters par = {val, row, col, **puzzle};
-        thread t1(CheckRow, par);
-        thread t2(CheckCol, par);
-        thread t3(CheckGrid, par);
-        t1.join();
-        t2.join();
-        t3.join();
-
-        if ((check_row == 0) | (check_col == 0) | (check_grid == 0)) {
-            continue;
+        if (threads(num, row, col, puzzle) == false) {
+            //continue;
+            cout << "false\n";
        } else {
-            puzzle[row][col] = val;
+            puzzle[row][col] = num;
             if(Solve(puzzle)) {
                 copy(&puzzle[0][0], &puzzle[0][0]+N*N,&sudoku[0][0]);
                 return true;
             }
             puzzle[row][col] = 0;
         }
-        cout << "Hello\n";
     }
     return false;
 }
