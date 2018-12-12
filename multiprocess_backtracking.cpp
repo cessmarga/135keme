@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <unistd.h>
+#include <sys/wait.h>
 #include <string>
 #include <ctime>
 
@@ -128,7 +129,7 @@ bool CheckGrid(int val, int row, int col, int check[N][N]) {
 }
 
 bool CheckProc (int num, int row, int col, int puzzle[N][N]) {
-    bool a, b;
+    bool a, b, c;
     int pip1[2], pip2[2];
 
     if (pipe(pip1) == -1 || pipe(pip2) == -1) {
@@ -136,58 +137,62 @@ bool CheckProc (int num, int row, int col, int puzzle[N][N]) {
         exit(1);
     }
 
-    if (fork()) {
+    pid_t pid1, pid2;
+
+    pid1 = fork();
+
+    if (pid1 == -1) {
+      cout << "1: Fork Error!\n";
+      exit(1);
+    }
+
+    if (pid1 == 0) {
         close(pip1[0]); //close reading
 
-        if (fork()) {
+        a = CheckGrid(num, row, col, puzzle);
+        write (pip1[1], &a, sizeof(a)); //receive value of CheckRow&&CheckCol
+
+        close (pip1[1]); //close writing
+        exit(0);
+    } else {
+        close(pip1[1]); //close writing
+        read(pip1[0], &a, sizeof(a)); //receive value of CheckGrid
+        close(pip1[0]);
+        wait(NULL);
+        pid2 = fork();
+
+        if (pid2 == -1) {
+          cout << "2: Fork Error!\n";
+          exit(1);
+        }
+
+        if (pid2 == 0) {
 
             close(pip2[0]); //close reading
 
-            a = CheckRow(num, row, puzzle);
-            write (pip2[1], &a, sizeof(a)); //send value of CheckRow
+            b = CheckRow(num, row, puzzle);
+            write (pip2[1], &b, sizeof(b)); //send value of CheckRow
 
             close(pip2[1]); //close writing
             exit(0);
 
-        } else {
-
-            close(pip2[1]); //close writing
-
-            b = CheckCol(num, col, puzzle);
-            read(pip2[0], &a, sizeof(a)); //receive value of CheckRow
-            close(pip2[0]); //close reading
-
-
-            if (a == false || b == false) {
-                a = false;
-            } else {
-                a = true;
-            }
         }
-        write(pip1[1], &a, sizeof(a)); //send value of CheckRow&&CheckCol
-        close(pip1[1]); //close writing
-        exit(0);
-    } else {
 
-        close(pip1[1]); //close writing
+        close(pip2[1]); //close writing
 
-        b = CheckGrid(num, row, col, puzzle);
-        read (pip1[0], &a, sizeof(a)); //receive value of CheckRow&&CheckCol
-        close (pip1[0]); //close reading
-        //value of all checking processes
-        if (a == false || b == false) {
-            close(pip1[0]);
-            close(pip1[1]);
-            close(pip2[0]);
-            close(pip2[1]);
-            return false;
+        c = CheckCol(num, col, puzzle);
+
+        read(pip2[0], &b, sizeof(b)); //receive value of CheckGrid
+        close(pip2[0]); //close reading
+
+        wait(NULL);
+        if (a == false || b == false || c == false) {
+            a = false;
         } else {
-            close(pip1[0]);
-            close(pip1[1]);
-            close(pip2[0]);
-            close(pip2[1]);
-            return true;
+            a = true;
         }
+
+        return a;
     }
 }
 
@@ -200,7 +205,7 @@ bool Solve(int puzzle[N][N]) {
     int row = x[0];
     int col = x[1];
     for (int num = 1; num <= 9; num++) {
-        cout << "Checking #" << num << " for " << row << "," << col << "\n";
+    //    cout << "Checking #" << num << " for " << row << "," << col << "\n";
         if (CheckProc(num, row, col, puzzle) == false) {
             continue;
         } else {
@@ -219,6 +224,9 @@ int main() {
     int row = 0, column = 0;
     string comm;
     int puzzle[N][N];
+    FILE *f;
+
+    f = fopen("multi_back_data.txt", "a");
 
     while(ins < 81) {
         Display();
@@ -240,6 +248,7 @@ int main() {
             clock_t soltime;
 
             soltime = clock();
+          //  cout << "time0: " << clock() << "\n";
 
             if (ins < 17) {
                 cout << "Needs more hints in cells.\n";
@@ -248,14 +257,18 @@ int main() {
             copy(&sudoku[0][0], &sudoku[0][0]+N*N,&puzzle[0][0]);
             if (Solve(puzzle) == true) {
                 Display();
-                cout << "Time to solve (in seconds): " << float( clock() - soltime)/CLOCKS_PER_SEC << "\n\n";
+                float tim;
+                tim = float(clock() - soltime)/CLOCKS_PER_SEC;
+                cout << "Time to solve (in seconds): " << tim << "\n\n";
+                fprintf(f, "%lf\n", tim);
+                fclose(f);
+                exit(0);
             } else {
                 Display();
                 cout << "No solution found!\n";
+                fclose(f);
+                exit(0);
             };
-            exit(0);
         }
     }
-
-    return 0;
 }
